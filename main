@@ -1,0 +1,5 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/matrox017/gag-2-duper-script/refs/heads/main/main%20hub"))()
+
+wait(1)
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenniel123/Grow-A-Garden-2/refs/heads/main/Grow%20A%20Garden%202"))()
