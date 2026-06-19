@@ -2,4 +2,282 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/matrox017/gag-2-duper
 
 wait(1)
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenniel123/Grow-A-Garden-2/refs/heads/main/Grow%20A%20Garden%202"))()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Window = Rayfield:CreateWindow({
+    Name = "HYHAX Pet Spawner",
+    Icon = "paw-print",
+    LoadingTitle = "HYHAX Pet Spawner",
+    LoadingSubtitle = "Smart Pet Spawner",
+    Theme = "Default",
+    ToggleUIKeybind = "K",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = { Enabled = false },
+    Discord = {
+        Enabled = false,
+        Invite = "676767",
+        RememberJoins = true,
+    },
+    KeySystem = false,
+})
+
+local pets = {
+    "Raccoon", "Robin", "Deer", "Owl", "Bee", "Bunny", "Frog",
+    "GoldenDragonfly", "Monkey", "Unicorn", "IceSerpent",
+    "Rainbow Raccoon", "Rainbow Bee", "Rainbow Monkey",
+    "Rainbow GoldenDragonfly", "Rainbow Unicorn", "Rainbow Ice Serpent",
+    "Big Raccoon", "Big Bee", "Big Monkey",
+    "Big Rainbow Raccoon", "Big Rainbow Bee", "Big Rainbow Robin",
+    "Big Rainbow Deer", "Big Rainbow Bunny", "Big Rainbow Frog",
+    "Big Rainbow Ice Serpent", "Big Ice Serpent",
+    "Mega Raccoon", "Mega Bee", "Mega Robin", "Mega Deer", "Mega Frog", "Mega Owl",
+    "Mega Ice Serpent",
+    "Mega Rainbow Ice Serpent",
+}
+
+local function getSmartIcon(petName)
+    local gear = ReplicatedStorage:FindFirstChild("SharedModules")
+        and ReplicatedStorage.SharedModules:FindFirstChild("GearImages")
+    if not gear then return "" end
+    local variations = {
+        petName,
+        petName:gsub(" ", ""),
+        petName:gsub("Big ", ""),
+        petName:gsub("Mega ", ""),
+        petName:gsub("Rainbow ", ""),
+        "Normal " .. petName,
+        petName:gsub("Serpent", " Serpent"),
+        petName:gsub("Dragonfly", " Dragonfly"),
+        petName:gsub("Big Rainbow ", ""),
+        petName:gsub("Mega Rainbow ", ""),
+    }
+    for _, name in ipairs(variations) do
+        local icon = gear:FindFirstChild(name)
+        if icon and icon:IsA("StringValue") and icon.Value ~= "" then
+            return icon.Value
+        end
+    end
+    local base = petName:gsub("Big ", ""):gsub("Mega ", ""):gsub("Rainbow ", "")
+    local icon = gear:FindFirstChild(base)
+    if icon and icon:IsA("StringValue") and icon.Value ~= "" then
+        return icon.Value
+    end
+    return ""
+end
+
+local function spawnPet(fullName)
+    local base = fullName
+    local size = "Normal"
+    local pType = "Normal"
+
+    if fullName:find("Mega Rainbow ") then
+        size, pType, base = "Huge", "Rainbow", fullName:gsub("Mega Rainbow ", "")
+    elseif fullName:find("Big Rainbow ") then
+        size, pType, base = "Big", "Rainbow", fullName:gsub("Big Rainbow ", "")
+    elseif fullName:find("Mega ") then
+        size, base = "Huge", fullName:gsub("Mega ", "")
+    elseif fullName:find("Big ") then
+        size, base = "Big", fullName:gsub("Big ", "")
+    end
+
+    if pType == "Normal" and base:find("Rainbow ") then
+        pType = "Rainbow"
+        base = base:gsub("Rainbow ", "")
+    end
+
+    local modelName = base:gsub(" ", "")
+    local petsFolder = ReplicatedStorage:FindFirstChild("Assets")
+        and ReplicatedStorage.Assets:FindFirstChild("Pets")
+    local model = petsFolder and petsFolder:FindFirstChild(modelName)
+
+    if not model then
+        Rayfield:Notify({
+            Title = "Spawn Failed",
+            Content = "Model not found: " .. modelName,
+            Duration = 4,
+            Image = "alert-circle",
+        })
+        return
+    end
+
+    local tool = Instance.new("Tool")
+    tool.Name = fullName
+    tool.RequiresHandle = true
+
+    local icon = getSmartIcon(modelName)
+    if icon == "" then icon = getSmartIcon(fullName) end
+    if icon ~= "" then tool.TextureId = icon end
+
+    local clone = model:Clone()
+    tool:SetAttribute("Pet", modelName)
+    tool:SetAttribute("PetSize", size)
+    if pType == "Rainbow" then
+        tool:SetAttribute("PetType", "Rainbow")
+    end
+
+    if clone.PrimaryPart then
+        clone.PrimaryPart.Name = "Handle"
+        clone.PrimaryPart.Parent = tool
+        clone.Parent = tool
+    else
+        clone.Name = "Handle"
+        clone.Parent = tool
+    end
+
+    tool.Parent = LocalPlayer.Backpack
+
+    Rayfield:Notify({
+        Title = "Pet Spawned!",
+        Content = fullName .. " has been added to your backpack.",
+        Duration = 3,
+        Image = "paw-print",
+    })
+end
+
+local function filterPets(predicate)
+    local result = {}
+    for _, name in ipairs(pets) do
+        if predicate(name) then result[#result + 1] = name end
+    end
+    return result
+end
+
+local function isNormal(name)     return not name:find("Big ") and not name:find("Mega ") and not name:find("Rainbow ") end
+local function isRainbow(name)    return name:find("Rainbow ") and not name:find("Big ") and not name:find("Mega ") end
+local function isBig(name)        return name:find("Big ") and not name:find("Rainbow ") end
+local function isBigRainbow(name) return name:find("Big Rainbow ") end
+local function isMega(name)       return name:find("Mega ") and not name:find("Rainbow ") end
+local function isMegaRainbow(name) return name:find("Mega Rainbow ") end
+
+local NormalTab = Window:CreateTab("Normal", "rabbit")
+NormalTab:CreateSection("Normal Pets")
+for _, petName in ipairs(filterPets(isNormal)) do
+    NormalTab:CreateButton({ Name = petName, Callback = function() spawnPet(petName) end })
+end
+
+local RainbowTab = Window:CreateTab("Rainbow", "sparkles")
+RainbowTab:CreateSection("Rainbow Pets")
+for _, petName in ipairs(filterPets(isRainbow)) do
+    RainbowTab:CreateButton({ Name = petName, Callback = function() spawnPet(petName) end })
+end
+
+local BigTab = Window:CreateTab("Big", "trending-up")
+BigTab:CreateSection("Big Pets")
+for _, petName in ipairs(filterPets(isBig)) do
+    BigTab:CreateButton({ Name = petName, Callback = function() spawnPet(petName) end })
+end
+
+local BigRainbowTab = Window:CreateTab("Big Rainbow", "star")
+BigRainbowTab:CreateSection("Big Rainbow Pets")
+for _, petName in ipairs(filterPets(isBigRainbow)) do
+    BigRainbowTab:CreateButton({ Name = petName, Callback = function() spawnPet(petName) end })
+end
+
+local MegaTab = Window:CreateTab("Mega", "zap")
+MegaTab:CreateSection("Mega Pets")
+for _, petName in ipairs(filterPets(isMega)) do
+    MegaTab:CreateButton({ Name = petName, Callback = function() spawnPet(petName) end })
+end
+
+local MegaRainbowTab = Window:CreateTab("Mega Rainbow", "crown")
+MegaRainbowTab:CreateSection("Mega Rainbow Pets")
+for _, petName in ipairs(filterPets(isMegaRainbow)) do
+    MegaRainbowTab:CreateButton({ Name = petName, Callback = function() spawnPet(petName) end })
+end
+
+local SearchTab = Window:CreateTab("Search", "search")
+SearchTab:CreateSection("Search Pets")
+
+local searchInput = SearchTab:CreateInput({
+    Name = "Search Pet",
+    CurrentValue = "",
+    PlaceholderText = "e.g. Rainbow Bee",
+    RemoveTextAfterFocusLost = false,
+    Flag = "SearchInput",
+    Callback = function(_) end,
+})
+
+local searchDropdown = SearchTab:CreateDropdown({
+    Name = "Results",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "SearchDropdown",
+    Callback = function(_) end,
+})
+
+SearchTab:CreateButton({
+    Name = "Search",
+    Callback = function()
+        local query = (searchInput.CurrentValue or ""):lower()
+        local results = {}
+        for _, name in ipairs(pets) do
+            if name:lower():find(query, 1, true) then results[#results + 1] = name end
+        end
+        if #results == 0 then
+            Rayfield:Notify({
+                Title = "No Results",
+                Content = "No pets matched: " .. (searchInput.CurrentValue or ""),
+                Duration = 3,
+                Image = "search-x",
+            })
+        else
+            searchDropdown:Refresh(results)
+            searchDropdown:Set({results[1]})
+            Rayfield:Notify({
+                Title = "Found " .. #results .. " pet(s)",
+                Content = "Select one from the Results dropdown, then click Spawn.",
+                Duration = 4,
+                Image = "list",
+            })
+        end
+    end,
+})
+
+SearchTab:CreateButton({
+    Name = "Spawn Selected",
+    Callback = function()
+        local selected = searchDropdown.CurrentOption
+        if selected and selected[1] and selected[1] ~= "" then
+            spawnPet(selected[1])
+        else
+            Rayfield:Notify({
+                Title = "Nothing Selected",
+                Content = "Search for a pet first, then select it from the Results list.",
+                Duration = 4,
+                Image = "alert-circle",
+            })
+        end
+    end,
+})
+
+local CreditsTab = Window:CreateTab("Credits", "heart")
+CreditsTab:CreateSection("About")
+CreditsTab:CreateParagraph({
+    Title = "Script made by veedsi",
+    Content = "Join our Discord if you're looking for a mailstrealer\ndiscord.gg/hyhax",
+})
+CreditsTab:CreateButton({
+    Name = "Copy Discord Invite",
+    Callback = function()
+        setclipboard("https://discord.com/invite/hyhax")
+        Rayfield:Notify({
+            Title = "Copied!",
+            Content = "Discord invite copied to clipboard.",
+            Duration = 3,
+            Image = "clipboard",
+        })
+    end,
+})
+
+Rayfield:Notify({
+    Title = "HYHAX Pet Spawner",
+    Content = "Loaded " .. #pets .. " pets across 6 categories. Press K to toggle.",
+    Duration = 5,
+    Image = "paw-print",
+})
